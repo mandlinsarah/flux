@@ -87,17 +87,19 @@ class Flux(nn.Module):
         if img.ndim != 3 or txt.ndim != 3:
             raise ValueError("Input img and txt tensors must have 3 dimensions.")
 
+        device = img.device
+
         # running on sequences img
-        img = self.img_in(img)
-        vec = self.time_in(timestep_embedding(timesteps, 256))
+        img = self.img_in(img.to(device))
+        vec = self.time_in(timestep_embedding(timesteps, 256).to(device))
         if self.params.guidance_embed:
             if guidance is None:
                 raise ValueError("Didn't get guidance strength for guidance distilled model.")
-            vec = vec + self.guidance_in(timestep_embedding(guidance, 256))
-        vec = vec + self.vector_in(y)
-        txt = self.txt_in(txt)
+            vec = vec + self.guidance_in(timestep_embedding(guidance, 256).to(device))
+        vec = vec + self.vector_in(y.to(device))
+        txt = self.txt_in(txt.to(device))
 
-        ids = torch.cat((txt_ids, img_ids), dim=1)
+        ids = torch.cat((txt_ids.to(device), img_ids.to(device)), dim=1)
         pe = self.pe_embedder(ids)
 
         for block in self.double_blocks:
@@ -110,3 +112,4 @@ class Flux(nn.Module):
 
         img = self.final_layer(img, vec)  # (N, T, patch_size ** 2 * out_channels)
         return img
+
